@@ -20,9 +20,12 @@ const { HandLandmarker, FilesetResolver } = vision;
 let audioContext;
 let oscillator;
 let gain;
+let reverbGain;
 
-const minFreq = 100;
-const maxFreq = 1000;
+const minFreq = 0;
+const maxFreq = 3000;
+const gainMax = 0.125;
+const reverbGainCoeff = 0.125;
 const interpolationTime = 0.15; // seconds
 
 const demosSection = document.getElementById("demos");
@@ -112,10 +115,12 @@ function enableAudio(event) {
   if (audioInit === true) {
     if (audioRunning === true) {
       gain.gain.value = 0.0;
+      reverbGain.gain.value = 0.0;
       audioRunning = false;
       enableAudioButton.innerText = "UNMUTE";
     } else {
-      gain.gain.value = 1.0;
+      gain.gain.value = gainMax;
+      reverbGain.gain.value = gainMax * reverbGainCoeff;
       audioRunning = true;
       enableAudioButton.innerText = "MUTE";
     }
@@ -123,14 +128,23 @@ function enableAudio(event) {
   if (audioInit == false) {
     let WAContext = window.AudioContext || window.webkitAudioContext;
     audioContext = new WAContext();
+    reverbjs.extend(audioContext);
     oscillator = audioContext.createOscillator();
     gain = audioContext.createGain();
+    let reverb = audioContext.createReverbFromUrl("http://reverbjs.org/Library/R1NuclearReactorHall.m4a");
+    reverbGain = audioContext.createGain();
+    let periodicWave = new PeriodicWave(audioContext, {real: wavereal, imag: waveimag});
 
     oscillator.connect(gain);
+    oscillator.setPeriodicWave(periodicWave);
     gain.connect(audioContext.destination);
+    oscillator.connect(reverb);
+    reverb.connect(reverbGain);
+    reverbGain.connect(audioContext.destination);
 
     oscillator.frequency.value = 440;
     gain.gain.value = 0.0;
+    reverbGain.gain.value = 0.0;
     oscillator.start(0);
     audioInit = true;
     enableAudioButton.innerText = "UNMUTE";
@@ -155,9 +169,29 @@ async function predictWebcam() {
   if (results.landmarks) {
     if (audioRunning === true) {
       if(results.landmarks.length === 1){
-        let coordinates = results.landmarks[0][9];
-        gain.gain.linearRampToValueAtTime(coordinates.y, audioContext.currentTime + interpolationTime);
-        oscillator.frequency.linearRampToValueAtTime(((1.0 - coordinates.x) * (maxFreq - minFreq)) + minFreq, audioContext.currentTime + interpolationTime);
+        let hand = results.landmarks[0];
+        let coordinates = hand[9];
+        let newGain = (1.0 - Math.log2(coordinates.y + 1.0)) * gainMax;
+        gain.gain.linearRampToValueAtTime(newGain, audioContext.currentTime + interpolationTime);
+        reverbGain.gain.linearRampToValueAtTime(newGain * reverbGainCoeff, audioContext.currentTime + interpolationTime);
+        let frequency = 0;
+        let fingerCount = 0;
+        for (let index = 0; index < 4; index++) {
+          let mcp = hand[(index * 4) + 5];
+          let tip = hand[(index * 4) + 8];
+          if (mcp.y > tip.y) {
+            frequency += tip.x;
+            fingerCount += 1; 
+          }
+        }
+        if (fingerCount > 0) {
+          frequency = frequency / fingerCount;
+          frequency = Math.log2(frequency + 1.0);
+          oscillator.frequency.linearRampToValueAtTime(((1.0 - frequency) * (maxFreq - minFreq)) + minFreq, audioContext.currentTime + interpolationTime);
+        }
+        else{
+          oscillator.frequency.linearRampToValueAtTime(0, audioContext.currentTime + interpolationTime);
+        }
       }
       if(results.landmarks.length === 2){
         let c1 = results.landmarks[0][9];
