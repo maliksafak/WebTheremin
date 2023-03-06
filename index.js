@@ -131,7 +131,7 @@ function enableAudio(event) {
     reverbjs.extend(audioContext);
     oscillator = audioContext.createOscillator();
     gain = audioContext.createGain();
-    let reverb = audioContext.createReverbFromUrl("http://reverbjs.org/Library/R1NuclearReactorHall.m4a");
+    let reverb = audioContext.createReverbFromUrl("https://maliksafak.github.io/WebTheremin/R1NuclearReactorHall.m4a");
     reverbGain = audioContext.createGain();
     let periodicWave = new PeriodicWave(audioContext, {real: wavereal, imag: waveimag});
 
