@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // import vision from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js";
-// const { HandLandmarker } = vision;
+// const { HandLandmarker } = vision
 import vision from "https://cdn.skypack.dev/@mediapipe/tasks-vision@latest";
 const { HandLandmarker, FilesetResolver } = vision;
 
