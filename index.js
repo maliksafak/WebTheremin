@@ -23,7 +23,7 @@ let gain;
 let reverbGain;
 
 const minFreq = 0;
-const maxFreq = 3000;
+const maxFreq = 1000;
 const gainMax = 0.25;
 const reverbGainCoeff = 0.125;
 const interpolationTime = 0.15; // seconds
